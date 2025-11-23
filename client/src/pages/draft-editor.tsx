@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Save, Send, Trash2, Eye, Share2, AlertCircle, CheckCircle2, ImageIcon, Copy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export default function DraftEditor() {
   const [draft, setDraft] = useState({
@@ -32,28 +34,49 @@ export default function DraftEditor() {
   const [scheduleTime, setScheduleTime] = useState("10:00");
   const [showPublishDialog, setShowPublishDialog] = useState(false);
 
-  const handleSaveDraft = () => {
-    alert("Draft saved! (In production, this would save to your database)");
+  const handleSaveDraft = async () => {
+    try {
+      const response = await api.drafts.saveDraft(draft);
+      if (response.success) {
+        toast.success(response.message);
+      }
+    } catch (error) {
+      toast.error("Failed to save draft");
+    }
   };
 
-  const handleSchedulePost = () => {
-    setDraft(prev => ({
-      ...prev,
-      status: "SCHEDULED",
-      scheduledAt: `${scheduleDate}T${scheduleTime}:00Z`,
-      updatedAt: new Date().toISOString()
-    }));
-    setShowScheduleDialog(false);
-    alert("Post scheduled!");
+  const handleSchedulePost = async () => {
+    try {
+      const response = await api.drafts.scheduleDraft(draft.id, `${scheduleDate}T${scheduleTime}:00Z`);
+      if (response.success) {
+        setDraft(prev => ({
+          ...prev,
+          status: "SCHEDULED",
+          scheduledAt: `${scheduleDate}T${scheduleTime}:00Z`,
+          updatedAt: new Date().toISOString()
+        }));
+        setShowScheduleDialog(false);
+        toast.success(response.message);
+      }
+    } catch (error) {
+      toast.error("Failed to schedule post");
+    }
   };
 
-  const handleSendForApproval = () => {
-    setDraft(prev => ({
-      ...prev,
-      status: "PENDING_APPROVAL",
-      updatedAt: new Date().toISOString()
-    }));
-    alert("Post sent for approval!");
+  const handleSendForApproval = async () => {
+    try {
+      const response = await api.drafts.submitForApproval(draft.id);
+      if (response.success) {
+        setDraft(prev => ({
+          ...prev,
+          status: "PENDING_APPROVAL",
+          updatedAt: new Date().toISOString()
+        }));
+        toast.success(response.message);
+      }
+    } catch (error) {
+      toast.error("Failed to send for approval");
+    }
   };
 
   const platformEmojis = {

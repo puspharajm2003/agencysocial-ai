@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, X, MessageSquare, Clock, User, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 const mockApprovalQueue = [
   {
@@ -62,6 +64,41 @@ const mockApprovalQueue = [
 export default function Approvals() {
   const [selectedPost, setSelectedPost] = useState(mockApprovalQueue[0]);
   const [comment, setComment] = useState("");
+
+  const handleApprove = async () => {
+    try {
+      const response = await api.approvals.approvePost(selectedPost.id);
+      if (response.success) {
+        toast.success("Post approved!");
+      }
+    } catch (error) {
+      toast.error("Failed to approve post");
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      const response = await api.approvals.rejectPost(selectedPost.id, comment);
+      if (response.success) {
+        toast.success("Changes requested");
+        setComment("");
+      }
+    } catch (error) {
+      toast.error("Failed to send feedback");
+    }
+  };
+
+  const handleAddComment = async () => {
+    try {
+      const response = await api.approvals.addComment(selectedPost.id, comment);
+      if (response.success) {
+        toast.success("Comment added");
+        setComment("");
+      }
+    } catch (error) {
+      toast.error("Failed to add comment");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
@@ -170,13 +207,13 @@ export default function Approvals() {
                   className="mb-2 min-h-[80px]"
                 />
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={handleAddComment}>
                     <MessageSquare className="h-4 w-4 mr-1" /> Comment Only
                   </Button>
-                  <Button size="sm" className="flex-1 bg-destructive hover:bg-destructive/90">
+                  <Button size="sm" className="flex-1 bg-destructive hover:bg-destructive/90" onClick={handleReject}>
                     <X className="h-4 w-4 mr-1" /> Request Changes
                   </Button>
-                  <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+                  <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={handleApprove}>
                     <Check className="h-4 w-4 mr-1" /> Approve
                   </Button>
                 </div>
