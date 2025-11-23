@@ -14,14 +14,40 @@ import { Switch } from "@/components/ui/switch";
 export default function ContentStudio() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState<Array<{ id: number; url: string; prompt: string }>>([]);
 
   const handleGenerate = () => {
     setIsGenerating(true);
-    // Simulate AI delay
     setTimeout(() => {
       setGeneratedContent("Here is a sample AI generated caption that is perfectly optimized for your brand voice. #AgencySocial #AI #Marketing \n\n✨ Transform your social presence today!");
       setIsGenerating(false);
     }, 1500);
+  };
+
+  const handleGenerateImages = () => {
+    setIsGeneratingImages(true);
+    // Simulate image generation with realistic timing
+    setTimeout(() => {
+      setGeneratedImages([
+        {
+          id: 1,
+          url: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=400&fit=crop",
+          prompt: "Professional tech product showcase with modern aesthetics"
+        },
+        {
+          id: 2,
+          url: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=400&fit=crop",
+          prompt: "Sleek digital interface with glowing elements"
+        },
+        {
+          id: 3,
+          url: "https://images.unsplash.com/photo-1552821206-24d69c4ae4a5?w=400&h=400&fit=crop",
+          prompt: "Creative workspace with innovation theme"
+        }
+      ]);
+      setIsGeneratingImages(false);
+    }, 2000);
   };
 
   return (
@@ -163,17 +189,54 @@ export default function ContentStudio() {
             )}
           </TabsContent>
           
-          <TabsContent value="image" className="flex-1 mt-0">
-             <div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl bg-muted/10">
+          <TabsContent value="image" className="flex-1 mt-0 overflow-y-auto">
+            {generatedImages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl bg-muted/10">
                 <div className="h-20 w-20 rounded-full bg-purple-500/10 flex items-center justify-center mb-4">
                   <ImageIcon className="h-10 w-10 text-purple-500" />
                 </div>
-                <h3 className="text-xl font-semibold">Image Generation</h3>
+                <h3 className="text-xl font-semibold">AI Image Generation</h3>
                 <p className="text-muted-foreground max-w-md mt-2">
-                  Generate photorealistic or stylized images for your posts. (Coming soon to MVP)
+                  Generate photorealistic or stylized images for your posts using AI.
                 </p>
-                <Button className="mt-4" variant="outline">Try Beta</Button>
+                <Button className="mt-4 bg-purple-600 hover:bg-purple-700" onClick={handleGenerateImages} disabled={isGeneratingImages}>
+                  {isGeneratingImages ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Generating Images...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" /> Generate Images
+                    </>
+                  )}
+                </Button>
               </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {generatedImages.map((img) => (
+                  <Card key={img.id} className="glass-card border-purple-500/20 overflow-hidden flex flex-col group">
+                    <div className="relative aspect-square bg-gradient-to-br from-purple-500/10 to-pink-500/10 overflow-hidden">
+                      <img src={img.url} alt={img.prompt} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <CardHeader className="pb-2">
+                      <Badge variant="secondary" className="w-fit">AI Generated</Badge>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                      <p className="text-sm text-muted-foreground line-clamp-2">{img.prompt}</p>
+                    </CardContent>
+                    <div className="p-4 pt-0 border-t border-border/50 flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <Copy className="h-4 w-4 mr-1" /> Download
+                      </Button>
+                      <Button size="sm" className="flex-1 bg-primary">
+                        Use Image
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
