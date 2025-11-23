@@ -18,6 +18,7 @@ import Onboarding from "@/pages/onboarding";
 import SocialConnect from "@/pages/social-connect";
 import DraftEditor from "@/pages/draft-editor";
 import ClientPortal from "@/pages/client-portal";
+import APIDebug from "@/pages/api-debug";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/social-connect" component={SocialConnect} />
         <Route path="/draft/:id" component={DraftEditor} />
         <Route path="/client-portal" component={ClientPortal} />
+        <Route path="/api-debug" component={APIDebug} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
