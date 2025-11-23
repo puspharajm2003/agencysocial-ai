@@ -11,6 +11,11 @@ import Clients from "@/pages/clients";
 import Calendar from "@/pages/calendar";
 import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
+import Approvals from "@/pages/approvals";
+import Assets from "@/pages/assets";
+import Templates from "@/pages/templates";
+import Onboarding from "@/pages/onboarding";
+import SocialConnect from "@/pages/social-connect";
 
 function Router() {
   return (
@@ -22,6 +27,11 @@ function Router() {
         <Route path="/calendar" component={Calendar} />
         <Route path="/analytics" component={Analytics} />
         <Route path="/settings" component={Settings} />
+        <Route path="/approvals" component={Approvals} />
+        <Route path="/assets" component={Assets} />
+        <Route path="/templates" component={Templates} />
+        <Route path="/onboarding" component={Onboarding} />
+        <Route path="/social-connect" component={SocialConnect} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
