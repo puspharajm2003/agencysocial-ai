@@ -1,0 +1,319 @@
+// schema.prisma
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"] // Enable pgvector if needed later
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------
+// ENUMS
+// --------------------------------------
+
+enum Role {
+  AGENCY_OWNER    // Can manage billing, branding, all clients
+  AGENCY_ADMIN    // Can manage all clients, no billing access
+  SOCIAL_MANAGER  // Can create/edit content for assigned clients
+  CLIENT_REVIEWER // Can only approve/reject/comment
+}
+
+enum Platform {
+  INSTAGRAM
+  FACEBOOK
+  TWITTER     // X
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+}
+
+enum PostStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  CAROUSEL
+  STORY
+  REEL
+}
+
+enum SubscriptionTier {
+  FREE
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+// --------------------------------------
+// ORGANIZATION & TENANCY
+// --------------------------------------
+
+model Organization {
+  id              String           @id @default(uuid())
+  name            String
+  slug            String           @unique // For subdomains or URLs
+  
+  // White-label settings
+  brandSettings   Json?            @default("{}") // { "logo": "url", "colors": {...}, "domain": "..." }
+  
+  // Billing
+  stripeCustomerId String?
+  subscriptionTier SubscriptionTier @default(FREE)
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  users           User[]
+  clients         Client[]
+  templates       Template[]
+  assets          Asset[]
+  aiUsage         AIUsage[]
+
+  @@index([slug])
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String    // Nullable if using OAuth only, but good to have
+  fullName        String?
+  avatarUrl       String?
+  
+  role            Role      @default(SOCIAL_MANAGER)
+  
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Granular Access Control
+  clientAccess    UserClientAccess[]
+  
+  // Audit & Activity
+  postsCreated    PostDraft[]    @relation("CreatedBy")
+  approvals       ApprovalLog[]
+  assetsUploaded  Asset[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+// --------------------------------------
+// CLIENTS & ACCOUNTS
+// --------------------------------------
+
+model Client {
+  id              String    @id @default(uuid())
+  name            String
+  website         String?
+  timezone        String    @default("UTC")
+  
+  // Specific client branding context for AI
+  brandVoice      Json?     // { "tone": "playful", "bannedWords": [], "audience": "..." }
+  
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Relations
+  socialAccounts  SocialAccount[]
+  posts           PostDraft[]
+  analytics       AnalyticsSnapshot[]
+  assets          Asset[]
+  userAccess      UserClientAccess[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([organizationId, name]) // Prevent duplicate client names in one org
+}
+
+// Explicit many-to-many for users accessing specific clients
+model UserClientAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  clientId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId])
+}
+
+model SocialAccount {
+  id             String    @id @default(uuid())
+  platform       Platform
+  platformId     String    // The social network's internal ID
+  username       String
+  pictureUrl     String?
+  
+  // Auth Tokens (Encrypted at application level before storage ideally)
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  
+  // Metadata (Page ID, scopes, etc)
+  meta           Json      @default("{}") 
+
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  posts          PostDraft[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([clientId, platform, platformId])
+}
+
+// --------------------------------------
+// CONTENT ENGINE
+// --------------------------------------
+
+model PostDraft {
+  id              String      @id @default(uuid())
+  
+  // Content
+  title           String?     // Internal name
+  caption         String      @db.Text
+  mediaUrls       String[]    // Array of S3 URLs
+  mediaType       MediaType   @default(IMAGE)
+  hashtags        String[]
+  
+  // Platform specifics
+  platform        Platform
+  socialAccountId String?     // Nullable if not yet assigned to specific account
+  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id])
+
+  // Scheduling & Status
+  status          PostStatus  @default(DRAFT)
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  failedReason    String?
+  
+  // Idempotency & External IDs
+  idempotencyKey  String?     @unique // Generated when scheduling to prevent duplicates
+  externalPostId  String?     // ID returned by FB/LinkedIn after publishing
+
+  // Ownership
+  clientId        String
+  client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  createdById     String
+  createdBy       User        @relation("CreatedBy", fields: [createdById], references: [id])
+
+  // Workflow
+  approvalLogs    ApprovalLog[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([clientId, status])
+  @@index([scheduledAt]) // Critical for the polling worker
+}
+
+model ApprovalLog {
+  id          String   @id @default(uuid())
+  postDraftId String
+  postDraft   PostDraft @relation(fields: [postDraftId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  action      String   // "REQUESTED", "APPROVED", "REJECTED", "COMMENT"
+  comment     String?  @db.Text
+  
+  createdAt   DateTime @default(now())
+}
+
+model Asset {
+  id             String    @id @default(uuid())
+  url            String    // S3 URL
+  filename       String
+  mimeType       String
+  sizeBytes      Int
+  
+  // AI Metadata
+  aiTags         String[]  // "beach", "sunset", "happy"
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  clientId       String?   // Can be null if it's a generic agency asset
+  client         Client?   @relation(fields: [clientId], references: [id])
+  
+  uploadedById   String
+  uploadedBy     User      @relation(fields: [uploadedById], references: [id])
+
+  createdAt      DateTime  @default(now())
+}
+
+model Template {
+  id             String       @id @default(uuid())
+  name           String
+  
+  // Structure for UI builder (drag & drop blocks)
+  structure      Json         // { "blocks": [...] }
+  thumbnailUrl   String?
+  
+  isSystem       Boolean      @default(false) // If true, provided by AgencySocial AI platform
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  createdAt      DateTime     @default(now())
+}
+
+// --------------------------------------
+// ANALYTICS & USAGE
+// --------------------------------------
+
+model AnalyticsSnapshot {
+  id             String    @id @default(uuid())
+  
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  platform       Platform
+  date           DateTime  @db.Date // Daily snapshots
+  
+  impressions    Int       @default(0)
+  reach          Int       @default(0)
+  engagement     Int       @default(0)
+  clicks         Int       @default(0)
+  likes          Int       @default(0)
+  comments       Int       @default(0)
+  shares         Int       @default(0)
+  
+  createdAt      DateTime  @default(now())
+
+  @@unique([clientId, platform, date])
+}
+
+model AIUsage {
+  id             String       @id @default(uuid())
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  month          DateTime     @db.Date // First day of the month
+  
+  tokensUsed       Int        @default(0) // LLM text tokens
+  imagesGenerated  Int        @default(0)
+  videoMinutes     Int        @default(0)
+  
+  costEstimate   Decimal      @default(0.0) @db.Decimal(10, 2)
+
+  @@unique([organizationId, month])
+}

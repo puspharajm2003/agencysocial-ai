@@ -9,6 +9,8 @@ import Dashboard from "@/pages/dashboard";
 import ContentStudio from "@/pages/content-studio";
 import Clients from "@/pages/clients";
 import Calendar from "@/pages/calendar";
+import Analytics from "@/pages/analytics";
+import Settings from "@/pages/settings";
 
 function Router() {
   return (
@@ -18,6 +20,8 @@ function Router() {
         <Route path="/content-studio" component={ContentStudio} />
         <Route path="/clients" component={Clients} />
         <Route path="/calendar" component={Calendar} />
+        <Route path="/analytics" component={Analytics} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
