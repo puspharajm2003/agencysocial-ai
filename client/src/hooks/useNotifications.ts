@@ -7,7 +7,6 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch notifications on mount
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -19,14 +18,13 @@ export function useNotifications() {
         }
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
+        toast.error("Failed to load notifications");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNotifications();
-
-    // Simulate real-time updates with polling (replace with WebSocket in production)
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -55,8 +53,12 @@ export function useNotifications() {
     };
 
     const icon = icons[notification.type] || "📬";
+    const time = new Date(notification.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
 
-    toast.custom(() => (
+    toast.custom(
       <div
         className="bg-white dark:bg-slate-950 rounded-lg shadow-lg border border-border p-4 w-80 cursor-pointer"
         onClick={() => markAsRead(notification.id)}
@@ -68,16 +70,11 @@ export function useNotifications() {
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
               {notification.message}
             </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {new Date(notification.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-              })}
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">{time}</p>
           </div>
         </div>
       </div>
-    ));
+    );
   }, [markAsRead]);
 
   return {

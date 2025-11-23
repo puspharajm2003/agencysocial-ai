@@ -9,8 +9,8 @@ import { api } from "@/lib/api";
 
 // Client Portal - White-label view for clients
 export default function ClientPortal() {
-  const [scheduledPosts, setScheduledPosts] = useState([]);
-  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClient] = useState("client_1");
 

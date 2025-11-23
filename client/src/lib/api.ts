@@ -34,6 +34,26 @@ export interface NotificationResponse {
 // Mock delay to simulate network latency
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Error handling wrapper
+export class APIError extends Error {
+  constructor(
+    public statusCode: number,
+    public message: string,
+    public details?: unknown
+  ) {
+    super(message);
+    this.name = "APIError";
+  }
+}
+
+// Response wrapper with error handling
+export interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
 export const api = {
   // Draft endpoints
   drafts: {

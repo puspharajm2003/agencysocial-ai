@@ -22,7 +22,7 @@ export default function DraftEditor() {
     ],
     platform: "instagram",
     client: "acme",
-    status: "DRAFT",
+    status: "DRAFT" as const,
     scheduledAt: "2025-11-25T10:00:00Z",
     hashtags: ["#Summer", "#NewArrivals", "#Fashion"],
     createdAt: new Date().toISOString(),
