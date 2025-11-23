@@ -16,6 +16,7 @@ import Assets from "@/pages/assets";
 import Templates from "@/pages/templates";
 import Onboarding from "@/pages/onboarding";
 import SocialConnect from "@/pages/social-connect";
+import DraftEditor from "@/pages/draft-editor";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/templates" component={Templates} />
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/social-connect" component={SocialConnect} />
+        <Route path="/draft/:id" component={DraftEditor} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

@@ -17,7 +17,8 @@ import {
   Settings,
   LogOut,
   Command,
-  Briefcase
+  Briefcase,
+  FileText
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +31,7 @@ export function AppSidebar() {
     { name: "Dashboard", icon: LayoutDashboard, href: "/" },
     { name: "Clients", icon: Users, href: "/clients" },
     { name: "Content Studio", icon: Sparkles, href: "/content-studio" },
+    { name: "Drafts", icon: FileText, href: "/draft/draft_001" },
     { name: "Calendar", icon: Calendar, href: "/calendar" },
     { name: "Analytics", icon: BarChart3, href: "/analytics" },
     { name: "Settings", icon: Settings, href: "/settings" },
