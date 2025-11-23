@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -19,8 +20,35 @@ import SocialConnect from "@/pages/social-connect";
 import DraftEditor from "@/pages/draft-editor";
 import ClientPortal from "@/pages/client-portal";
 import APIDebug from "@/pages/api-debug";
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/login" component={Login} />
+        <Route path="/signup" component={Signup} />
+        <Route component={Login} />
+      </Switch>
+    );
+  }
+
   return (
     <AppLayout>
       <Switch>
